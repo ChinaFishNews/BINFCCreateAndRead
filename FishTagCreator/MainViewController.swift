@@ -25,8 +25,8 @@ class MainViewController: UITableViewController, UINavigationControllerDelegate,
     @IBAction func writeTag(_ sender: Any) {
         guard NFCNDEFReaderSession.readingAvailable else {
             let alertController = UIAlertController(
-                title: "Scanning Not Supported",
-                message: "This device doesn't support tag scanning.",
+                title: "不支持扫描",
+                message: "这个设备不支持标签扫描",
                 preferredStyle: .alert
             )
             alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
@@ -57,11 +57,13 @@ class MainViewController: UITableViewController, UINavigationControllerDelegate,
             priceString = priceBCD[productPrice.selectedSegmentIndex]
         }
         
-        var urlComponent = URLComponents(string: "https://fishtagcreator.example.com/")
+        var urlComponent = URLComponents(string: "https://www.baidu.com/")
         
-        urlComponent?.queryItems = [URLQueryItem(name: "date", value: dateString),
-                                    URLQueryItem(name: "kind", value: kindString),
-                                    URLQueryItem(name: "price", value: priceString)]
+//        urlComponent?.queryItems = [URLQueryItem(name: "date", value: dateString),
+//                                    URLQueryItem(name: "kind", value: kindString),
+//                                    URLQueryItem(name: "price", value: priceString)]
+        // 数据超出限制，所以只存储date
+        urlComponent?.queryItems = [URLQueryItem(name: "date", value: dateString)]
         
         os_log("url: %@", (urlComponent?.string)!)
         
@@ -107,7 +109,7 @@ class MainViewController: UITableViewController, UINavigationControllerDelegate,
     
     func readerSession(_ session: NFCNDEFReaderSession, didDetect tags: [NFCNDEFTag]) {
         if tags.count > 1 {
-            session.alertMessage = "More than 1 tags found. Please present only 1 tag."
+            session.alertMessage = "发现超过1个标签。请仅展示示1个标签"
             self.tagRemovalDetect(tags.first!)
             return
         }
@@ -123,30 +125,29 @@ class MainViewController: UITableViewController, UINavigationControllerDelegate,
             // You then query the NDEF status of tag.
             tag.queryNDEFStatus() { (status: NFCNDEFStatus, capacity: Int, error: Error?) in
                 if error != nil {
-                    session.invalidate(errorMessage: "Fail to determine NDEF status.  Please try again.")
+                    session.invalidate(errorMessage: "无法确定NDEF状态 请再试一次")
                     return
                 }
                 
                 if status == .readOnly {
-                    session.invalidate(errorMessage: "Tag is not writable.")
+                    session.invalidate(errorMessage: "标签不可写")
                 } else if status == .readWrite {
                     if self.ndefMessage!.length > capacity {
-                        session.invalidate(errorMessage: "Tag capacity is too small.  Minimum size requirement is \(self.ndefMessage!.length) bytes.")
+                        session.invalidate(errorMessage: "标签容量太小 最小尺寸要求\(self.ndefMessage!.length) 字节")
                         return
                     }
                     
-                    // When a tag is read-writable and has sufficient capacity,
-                    // write an NDEF message to it.
+                    // 当标签是可读写的并且有足够的容量时，写入一个NDEF消息
                     tag.writeNDEF(self.ndefMessage!) { (error: Error?) in
                         if error != nil {
-                            session.invalidate(errorMessage: "Update tag failed. Please try again.")
+                            session.invalidate(errorMessage: "更新标签失败了 请再试一次")
                         } else {
-                            session.alertMessage = "Update success!"
+                            session.alertMessage = "更新成功!"
                             session.invalidate()
                         }
                     }
                 } else {
-                    session.invalidate(errorMessage: "Tag is not NDEF formatted.")
+                    session.invalidate(errorMessage: "标签不是NDEF格式")
                 }
             }
         }

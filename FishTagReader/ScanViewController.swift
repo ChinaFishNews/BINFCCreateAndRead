@@ -27,11 +27,11 @@ class ScanViewController: UITableViewController, NFCTagReaderSessionDelegate {
     @IBAction func scanTag(_ sender: Any) {
         guard NFCNDEFReaderSession.readingAvailable else {
             let alertController = UIAlertController(
-                title: "Scanning Not Supported",
-                message: "This device doesn't support tag scanning.",
+                title: "不支持扫描",
+                message: "这个设备不支持标签扫描",
                 preferredStyle: .alert
             )
-            alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+            alertController.addAction(UIAlertAction(title: "确定", style: .default, handler: nil))
             self.present(alertController, animated: true, completion: nil)
             return
         }
@@ -46,7 +46,7 @@ class ScanViewController: UITableViewController, NFCTagReaderSessionDelegate {
         self.readerSession?.connect(to: tag) { (error: Error?) in
             if error != nil || !tag.isAvailable {
                 
-                os_log("Restart polling.")
+                os_log("重新启动轮询")
                 
                 self.readerSession?.restartPolling()
                 return
@@ -83,26 +83,26 @@ class ScanViewController: UITableViewController, NFCTagReaderSessionDelegate {
         return String("$\(priceString.prefix(priceString.count - 2)).\(priceString.suffix(2))")
     }
     
+    // UI元素根据接收到的NDEF消息进行更新
     func updateWithNDEFMessage(_ message: NFCNDEFMessage) -> Bool {
-        // UI elements are updated based on the received NDEF message.
         let urls: [URLComponents] = message.records.compactMap { (payload: NFCNDEFPayload) -> URLComponents? in
-            // Search for URL record with matching domain host and scheme.
+            // 使用匹配的域主机和方案搜索URL记录
             if let url = payload.wellKnownTypeURIPayload() {
                 let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-                if components?.host == "fishtagcreator.example.com" && components?.scheme == "https" {
+                if components?.host == "www.baidu.com" && components?.scheme == "https" {
                     return components
                 }
             }
             return nil
         }
         
-        // Valid tag should only contain 1 URL and contain multiple query items.
+        // 有效标签应该只包含一个URL和多个查询项
         guard urls.count == 1,
             let items = urls.first?.queryItems else {
             return false
         }
         
-        // Get the optional info text from the text payload.
+        // 从有效负载中获取可选信息文本
         var additionInfo: String? = nil
 
         for payload in message.records {
@@ -135,18 +135,20 @@ class ScanViewController: UITableViewController, NFCTagReaderSessionDelegate {
     
     // MARK: - NFCTagReaderSessionDelegate
     func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
-        // If necessary, you may perform additional operations on session start.
-        // At this point RF polling is enabled.
+        // 如果需要，您可以在会话启动时执行其他操作
+        // 此时启用了RF轮询
+        print("BecomeActive");
     }
     
     func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
-        // If necessary, you may handle the error. Note session is no longer valid.
-        // You must create a new session to restart RF polling.
+        // 如果有必要，您可以处理错误。注:会话不再有效
+        // 您必须创建一个新会话来重新启动RF轮询
+        print("error=\(error)");
     }
     
     func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
         if tags.count > 1 {
-            session.alertMessage = "More than 1 tags was found. Please present only 1 tag."
+            session.alertMessage = "发现了1个以上的标签。请只展示1个标签"
             self.tagRemovalDetect(tags.first!)
             return
         }
@@ -163,24 +165,29 @@ class ScanViewController: UITableViewController, NFCTagReaderSessionDelegate {
         case let .miFare(tag):
             ndefTag = tag
         @unknown default:
-            session.invalidate(errorMessage: "Tag not valid.")
+            session.invalidate(errorMessage: "标签无效")
             return
         }
         
         session.connect(to: tags.first!) { (error: Error?) in
             if error != nil {
-                session.invalidate(errorMessage: "Connection error. Please try again.")
+                session.invalidate(errorMessage: "连接错误 请再试一次")
                 return
             }
             
             ndefTag.queryNDEFStatus() { (status: NFCNDEFStatus, _, error: Error?) in
                 if status == .notSupported {
-                    session.invalidate(errorMessage: "Tag not valid.")
+                    session.invalidate(errorMessage: "标签无效")
                     return
                 }
                 ndefTag.readNDEF() { (message: NFCNDEFMessage?, error: Error?) in
-                    if error != nil || message == nil {
-                        session.invalidate(errorMessage: "Read error. Please try again.")
+                    if error != nil {
+                        session.invalidate(errorMessage: "读取错误 请再试一次")
+                        return
+                    }
+                    
+                    if message == nil {
+                        session.invalidate(errorMessage: "没有读取到任何信息")
                         return
                     }
                     
@@ -188,7 +195,7 @@ class ScanViewController: UITableViewController, NFCTagReaderSessionDelegate {
                         session.invalidate()
                     }
                     
-                    session.invalidate(errorMessage: "Tag not valid.")
+//                    session.invalidate(errorMessage: "标签无效")
                 }
             }
         }

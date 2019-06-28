@@ -17,12 +17,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                      continue userActivity: NSUserActivity,
                      restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
         
-        // You handle the user activity created by the NFC background tag reading feature.
+        // 处理由NFC后台标签读取特性创建的用户活动
         guard userActivity.activityType == NSUserActivityTypeBrowsingWeb else {
             return false
         }
         
-        // Confirm that the NSUserActivity object contains a valid NDEF message.
+        // 确认NSUserActivity对象包含一个有效的NDEF消息
         let ndefMessage = userActivity.ndefMessagePayload
         guard !ndefMessage.records.isEmpty,
             ndefMessage.records[0].typeNameFormat != .empty else {
@@ -34,7 +34,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
         
         DispatchQueue.main.async {
-            // You send the message to `ScanViewController` for processing.
+            // 消息发送到“ScanViewController”进行处理
             _ = scanViewController.updateWithNDEFMessage(ndefMessage)
         }
         
