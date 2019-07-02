@@ -9,6 +9,11 @@ import UIKit
 import CoreNFC
 import os
 
+/*
+ NFCNDEFReaderSession:用于检测NFC数据交换格式（NDEF）标签的读取器会话
+ NFCTagReaderSession:用于检测ISO7816，ISO15693，FeliCa和MIFARE标签的读取器会话
+ */
+
 class ScanViewController: UITableViewController, NFCTagReaderSessionDelegate {
 
     // MARK: - Properties
